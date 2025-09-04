@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Settings, Edit3 } from "lucide-react"
+import { ArrowLeft, Plus, Settings, Edit3, Save, Check } from "lucide-react"
 import PhotoCapture from "@/components/photo-capture"
 import StickerLibrary from "@/components/sticker-library"
 import SwipeableCanvas from "@/components/swipeable-canvas"
@@ -40,7 +40,9 @@ interface Album {
 export default function AlbumEditor() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const albumId = params.id as string
+  const isQuickPhoto = searchParams.get("quickPhoto") === "true"
 
   const [album, setAlbum] = useState<Album | null>(null)
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
@@ -49,23 +51,73 @@ export default function AlbumEditor() {
   const [editedName, setEditedName] = useState("")
   const [showPhotoCapture, setShowPhotoCapture] = useState(false)
   const [showStickerLibrary, setShowStickerLibrary] = useState(false)
+  const [isSaved, setIsSaved] = useState(true)
+  const [isAutoSaving, setIsAutoSaving] = useState(false)
 
   useEffect(() => {
-    const mockAlbum: Album = {
-      id: albumId,
-      name: albumId === "1" ? "Family Vacation" : "Birthday Party",
-      pages: [
-        {
-          id: "page-1",
-          photos: [],
-          stickers: [],
-        },
-      ],
-      createdAt: new Date(),
+    const savedAlbums = JSON.parse(localStorage.getItem("photoAlbums") || "{}")
+
+    if (savedAlbums[albumId]) {
+      setAlbum(savedAlbums[albumId])
+      setEditedName(savedAlbums[albumId].name)
+    } else {
+      const mockAlbum: Album = {
+        id: albumId,
+        name:
+          albumId === "1"
+            ? "Family Vacation"
+            : albumId === "2"
+              ? "Birthday Party"
+              : `Quick Photo ${new Date().toLocaleDateString()}`,
+        pages: [
+          {
+            id: "page-1",
+            photos: [],
+            stickers: [],
+          },
+        ],
+        createdAt: new Date(),
+      }
+      setAlbum(mockAlbum)
+      setEditedName(mockAlbum.name)
+
+      if (isQuickPhoto) {
+        setShowPhotoCapture(true)
+      }
     }
-    setAlbum(mockAlbum)
-    setEditedName(mockAlbum.name)
-  }, [albumId])
+  }, [albumId, isQuickPhoto])
+
+  useEffect(() => {
+    if (!album || isSaved) return
+
+    const autoSaveTimer = setTimeout(() => {
+      saveAlbum(true)
+    }, 2000)
+
+    return () => clearTimeout(autoSaveTimer)
+  }, [album, isSaved])
+
+  const saveAlbum = (isAutoSave = false) => {
+    if (!album) return
+
+    if (isAutoSave) {
+      setIsAutoSaving(true)
+    }
+
+    const savedAlbums = JSON.parse(localStorage.getItem("photoAlbums") || "{}")
+    savedAlbums[albumId] = album
+    localStorage.setItem("photoAlbums", JSON.stringify(savedAlbums))
+
+    setIsSaved(true)
+
+    if (isAutoSave) {
+      setTimeout(() => setIsAutoSaving(false), 1000)
+    }
+  }
+
+  const markUnsaved = () => {
+    setIsSaved(false)
+  }
 
   const addNewPage = () => {
     if (!album) return
@@ -81,6 +133,7 @@ export default function AlbumEditor() {
       pages: [...album.pages, newPage],
     })
     setCurrentPageIndex(album.pages.length)
+    markUnsaved()
   }
 
   const deletePage = (pageIndex: number) => {
@@ -95,6 +148,7 @@ export default function AlbumEditor() {
     if (currentPageIndex >= newPages.length) {
       setCurrentPageIndex(newPages.length - 1)
     }
+    markUnsaved()
   }
 
   const updateAlbumName = () => {
@@ -105,6 +159,7 @@ export default function AlbumEditor() {
       name: editedName.trim(),
     })
     setIsEditingName(false)
+    markUnsaved()
   }
 
   const goToPage = (pageIndex: number) => {
@@ -135,6 +190,7 @@ export default function AlbumEditor() {
       ...album,
       pages: updatedPages,
     })
+    markUnsaved()
   }
 
   const addStickerToPage = (stickerType: string) => {
@@ -159,6 +215,7 @@ export default function AlbumEditor() {
       pages: updatedPages,
     })
     setShowStickerLibrary(false)
+    markUnsaved()
   }
 
   const updateElement = (elementId: string, updates: any) => {
@@ -167,13 +224,11 @@ export default function AlbumEditor() {
     const updatedPages = [...album.pages]
     const currentPage = updatedPages[currentPageIndex]
 
-    // Update photo
     const photoIndex = currentPage.photos.findIndex((p) => p.id === elementId)
     if (photoIndex !== -1) {
       currentPage.photos[photoIndex] = { ...currentPage.photos[photoIndex], ...updates }
     }
 
-    // Update sticker
     const stickerIndex = currentPage.stickers.findIndex((s) => s.id === elementId)
     if (stickerIndex !== -1) {
       currentPage.stickers[stickerIndex] = { ...currentPage.stickers[stickerIndex], ...updates }
@@ -183,6 +238,7 @@ export default function AlbumEditor() {
       ...album,
       pages: updatedPages,
     })
+    markUnsaved()
   }
 
   const deleteElement = (elementId: string) => {
@@ -198,6 +254,7 @@ export default function AlbumEditor() {
       ...album,
       pages: updatedPages,
     })
+    markUnsaved()
   }
 
   if (!album) {
@@ -248,14 +305,34 @@ export default function AlbumEditor() {
             )}
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPageManager(!showPageManager)}
-            className="text-foreground hover:bg-muted"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAutoSaving && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                Saving...
+              </div>
+            )}
+
+            <Button
+              variant={isSaved ? "ghost" : "default"}
+              size="sm"
+              onClick={() => saveAlbum()}
+              className={
+                isSaved ? "text-green-600 hover:bg-muted" : "bg-primary hover:bg-primary/90 text-primary-foreground"
+              }
+            >
+              {isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPageManager(!showPageManager)}
+              className="text-foreground hover:bg-muted"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

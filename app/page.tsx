@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,25 +16,16 @@ interface Album {
 
 export default function HomePage() {
   const router = useRouter()
-  const [albums, setAlbums] = useState<Album[]>([
-    {
-      id: "1",
-      name: "Family Vacation",
-      coverImage: "/family-vacation-photos.jpg",
-      pageCount: 5,
-      createdAt: new Date("2024-01-15"),
-    },
-    {
-      id: "2",
-      name: "Birthday Party",
-      coverImage: "/birthday-party.png",
-      pageCount: 3,
-      createdAt: new Date("2024-02-10"),
-    },
-  ])
+  const [albums, setAlbums] = useState<Album[]>([])
 
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newAlbumName, setNewAlbumName] = useState("")
+
+  useEffect(() => {
+    const savedAlbums = JSON.parse(localStorage.getItem("photoAlbums") || "{}")
+    const albumList = Object.values(savedAlbums) as Album[]
+    setAlbums(albumList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+  }, [])
 
   const createNewAlbum = () => {
     if (newAlbumName.trim()) {
@@ -44,6 +35,22 @@ export default function HomePage() {
         pageCount: 1,
         createdAt: new Date(),
       }
+
+      const savedAlbums = JSON.parse(localStorage.getItem("photoAlbums") || "{}")
+      savedAlbums[newAlbum.id] = {
+        id: newAlbum.id,
+        name: newAlbum.name,
+        pages: [
+          {
+            id: "page-1",
+            photos: [],
+            stickers: [],
+          },
+        ],
+        createdAt: newAlbum.createdAt,
+      }
+      localStorage.setItem("photoAlbums", JSON.stringify(savedAlbums))
+
       setAlbums([newAlbum, ...albums])
       setNewAlbumName("")
       setShowCreateForm(false)
@@ -53,6 +60,35 @@ export default function HomePage() {
 
   const openAlbum = (albumId: string) => {
     router.push(`/album/${albumId}`)
+  }
+
+  const handleQuickPhoto = () => {
+    // Create a temporary album with timestamp name
+    const quickAlbum: Album = {
+      id: `quick-${Date.now()}`,
+      name: `Quick Photo ${new Date().toLocaleDateString()}`,
+      pageCount: 1,
+      createdAt: new Date(),
+    }
+
+    const savedAlbums = JSON.parse(localStorage.getItem("photoAlbums") || "{}")
+    savedAlbums[quickAlbum.id] = {
+      id: quickAlbum.id,
+      name: quickAlbum.name,
+      pages: [
+        {
+          id: "page-1",
+          photos: [],
+          stickers: [],
+        },
+      ],
+      createdAt: quickAlbum.createdAt,
+    }
+    localStorage.setItem("photoAlbums", JSON.stringify(savedAlbums))
+
+    setAlbums([quickAlbum, ...albums])
+    // Navigate to album editor with quick photo flag
+    router.push(`/album/${quickAlbum.id}?quickPhoto=true`)
   }
 
   return (
@@ -76,6 +112,7 @@ export default function HomePage() {
 
           <Button
             variant="outline"
+            onClick={handleQuickPhoto}
             className="h-20 border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground rounded-xl flex flex-col items-center justify-center gap-2 bg-transparent"
           >
             <Camera className="w-6 h-6" />
