@@ -13,7 +13,9 @@
   --primary: oklch(0.6 0.15 240); /* #1e90ff - Primary actions (light blue) */
   --primary-foreground: oklch(1 0 0); /* #ffffff - Text on primary buttons */
   --secondary: oklch(0.7 0.15 60); /* #ff8c00 - Accent color (orange) */
-  --secondary-foreground: oklch(1 0 0); /* #ffffff - Text on secondary elements */
+  --secondary-foreground: oklch(
+    1 0 0
+  ); /* #ffffff - Text on secondary elements */
   --muted: oklch(0.97 0.005 240); /* #f0f4f8 - Muted background elements */
   --muted-foreground: oklch(0.278 0 0); /* #374151 - Muted text */
   --accent: oklch(0.7 0.15 60); /* #ff8c00 - Accent elements (orange) */
@@ -45,9 +47,14 @@
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
-html, body { -webkit-tap-highlight-color: transparent; }
-.button-lg { min-width: 44px; min-height: 44px; } /* タップしやすいサイズ */
-
+html,
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+.button-lg {
+  min-width: 44px;
+  min-height: 44px;
+} /* タップしやすいサイズ */
 
 .dark {
   --background: oklch(0.145 0 0);
