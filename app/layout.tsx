@@ -4,6 +4,13 @@ import { GeistMono } from 'geist/font/mono'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover", // iPhoneのノッチ対応
+};
+
+
 export const metadata: Metadata = {
   title: 'v0 App',
   description: 'Created with v0',

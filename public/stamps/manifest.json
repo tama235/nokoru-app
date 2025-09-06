@@ -1,0 +1,106 @@
+{
+  "pack": "basic-stamps-pack",
+  "items": [
+    {
+      "file": "heart.svg",
+      "tags": [
+        "heart"
+      ]
+    },
+    {
+      "file": "label-rect.svg",
+      "tags": [
+        "label",
+        "rect"
+      ]
+    },
+    {
+      "file": "note-blue.svg",
+      "tags": [
+        "note",
+        "blue"
+      ]
+    },
+    {
+      "file": "note-pink.svg",
+      "tags": [
+        "note",
+        "pink"
+      ]
+    },
+    {
+      "file": "note-yellow.svg",
+      "tags": [
+        "note",
+        "yellow"
+      ]
+    },
+    {
+      "file": "pin.svg",
+      "tags": [
+        "pin"
+      ]
+    },
+    {
+      "file": "seal-good.svg",
+      "tags": [
+        "seal",
+        "good"
+      ]
+    },
+    {
+      "file": "seal-ok.svg",
+      "tags": [
+        "seal",
+        "ok"
+      ]
+    },
+    {
+      "file": "seal-pass.svg",
+      "tags": [
+        "seal",
+        "pass"
+      ]
+    },
+    {
+      "file": "sparkles.svg",
+      "tags": [
+        "sparkles"
+      ]
+    },
+    {
+      "file": "speech-bubble.svg",
+      "tags": [
+        "speech",
+        "bubble"
+      ]
+    },
+    {
+      "file": "star.svg",
+      "tags": [
+        "star"
+      ]
+    },
+    {
+      "file": "tape-diag.svg",
+      "tags": [
+        "tape",
+        "diag"
+      ]
+    },
+    {
+      "file": "tape-grid.svg",
+      "tags": [
+        "tape",
+        "grid"
+      ]
+    },
+    {
+      "file": "tape-plain.svg",
+      "tags": [
+        "tape",
+        "plain"
+      ]
+    }
+  ]
+}

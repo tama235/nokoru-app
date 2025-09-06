@@ -1,77 +1,70 @@
-"use client"
+"use client";
+import * as React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { X } from "lucide-react"
+type Props = {
+  open: boolean;
+  onStickerSelected: (emoji: string) => void;
+  onClose: () => void;
+};
 
-interface StickerLibraryProps {
-  onStickerSelected: (stickerType: string) => void
-  onClose: () => void
-}
+// カテゴリ別の絵文字だけ
+const EMOJI = {
+  hearts: ["❤️","💖","💕","💗","💙","💚","💛","🧡","💜"],
+  stars:  ["⭐","🌟","✨","💫","🌠","⚡","🔥","💥","✴️"],
+  nature: ["🌸","🌺","🌻","🌷","🌹","🍀","🌿","🌱","🌳"],
+  fun:    ["🎉","🎊","🎈","🎁","🎂","🍰","🧁","🍭","🎪"],
+  animals:["🐶","🐱","🐰","🐻","🐼","🦊","🐸","🐝","🦋"],
+  shapes: ["🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤"],
+} as const;
 
-const STICKER_CATEGORIES = {
-  hearts: ["❤️", "💖", "💕", "💗", "💙", "💚", "💛", "🧡", "💜"],
-  stars: ["⭐", "🌟", "✨", "💫", "🌠", "⚡", "🔥", "💥", "✴️"],
-  nature: ["🌸", "🌺", "🌻", "🌷", "🌹", "🍀", "🌿", "🌱", "🌳"],
-  fun: ["🎉", "🎊", "🎈", "🎁", "🎂", "🍰", "🧁", "🍭", "🎪"],
-  animals: ["🐶", "🐱", "🐰", "🐻", "🐼", "🦊", "🐸", "🐝", "🦋"],
-  shapes: ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "⚫", "⚪", "🟤"],
-}
+const CATS = [
+  { key: "hearts",  label: "Hearts" },
+  { key: "stars",   label: "Stars"  },
+  { key: "nature",  label: "Nature" },
+  { key: "fun",     label: "Fun"    },
+  { key: "animals", label: "Animals"},
+  { key: "shapes",  label: "Shapes" },
+] as const;
 
-export default function StickerLibrary({ onStickerSelected, onClose }: StickerLibraryProps) {
-  const [selectedCategory, setSelectedCategory] = useState<keyof typeof STICKER_CATEGORIES>("hearts")
+export default function StickerLibrary({ open, onStickerSelected, onClose }: Props) {
+  if (!open) return null;
+
+  const [active, setActive] = React.useState<(typeof CATS)[number]["key"]>("hearts");
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-end">
-      <Card className="w-full max-h-[70vh] rounded-t-xl bg-card">
-        <CardContent className="p-4">
-          <div className="max-w-md mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Add Sticker</h2>
-              <Button variant="ghost" size="sm" onClick={onClose} className="text-foreground hover:bg-muted">
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40">
+      <div className="w-full bg-white rounded-t-xl p-4 shadow-lg">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Stickers</h2>
+          <button className="text-sm px-3 py-1 rounded hover:bg-zinc-100" onClick={onClose}>Close</button>
+        </div>
 
-            {/* Category Tabs */}
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {Object.keys(STICKER_CATEGORIES).map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category as keyof typeof STICKER_CATEGORIES)}
-                  className={`capitalize whitespace-nowrap ${
-                    selectedCategory === category
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted"
-                  }`}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
+        {/* タブ */}
+        <div className="flex gap-2 mb-3 overflow-x-auto">
+          {CATS.map(c => (
+            <button
+              key={c.key}
+              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${active===c.key ? "bg-zinc-900 text-white" : "bg-zinc-100"}`}
+              onClick={() => setActive(c.key)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
 
-            {/* Sticker Grid */}
-            <div className="grid grid-cols-6 gap-3 max-h-60 overflow-y-auto">
-              {STICKER_CATEGORIES[selectedCategory].map((sticker, index) => (
-                <button
-                  key={index}
-                  onClick={() => onStickerSelected(sticker)}
-                  className="aspect-square bg-muted hover:bg-muted/80 rounded-lg flex items-center justify-center text-2xl transition-colors border-2 border-transparent hover:border-primary/30"
-                >
-                  {sticker}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 text-center">
-              <p className="text-xs text-muted-foreground">Tap a sticker to add it to your page</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* グリッド */}
+        <div className="grid grid-cols-6 gap-2 max-h-[40vh] overflow-y-auto">
+          {EMOJI[active].map((emoji, i) => (
+            <button
+              key={`${active}-${i}`}
+              onClick={() => onStickerSelected(emoji)}
+              className="aspect-square rounded-lg bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-3xl"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
-  )
+  );
 }
