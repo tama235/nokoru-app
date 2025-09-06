@@ -134,7 +134,16 @@ export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureP
                 </Button>
               </div>
 
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+        
+              <input
+                ref={fileRef}                     // 既にあればそのまま
+                type="file"
+                accept="image/*"
+                capture="environment"            // ← これを追加（背面カメラ優先）
+                onChange={handleFiles}           // あなたの既存処理でOK
+                className="sr-only"              // 画面に出さない場合
+              />
+
             </div>
           )}
 

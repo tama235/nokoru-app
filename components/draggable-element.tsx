@@ -1,249 +1,209 @@
-"use client"
+// components/draggable-element.tsx
+"use client";
+import React, { useRef, useState } from "react";
 
-import type React from "react"
+const isImageLike = (s?: string) =>
+  !!s && (s.startsWith("data:") || s.startsWith("/") || s.startsWith("http"));
 
-import { useState, useRef, useEffect } from "react"
-import { Trash2 } from "lucide-react"
+type BaseProps = {
+  id: string;
+  x: number;     // 0-100 (%)
+  y: number;     // 0-100 (%)
+  width: number; // px
+  height: number;// px
+  containerRef: React.RefObject<HTMLDivElement>;
+  onUpdate: (id: string, updates: any) => void;
+  onDelete: (id: string) => void;
+};
 
-interface DraggableElementProps {
-  id: string
-  type: "photo" | "sticker"
-  src?: string
-  content?: string
-  x: number
-  y: number
-  width: number
-  height: number
-  caption?: string
-  onUpdate: (id: string, updates: { x?: number; y?: number; width?: number; height?: number; caption?: string }) => void
-  onDelete: (id: string) => void
-  containerRef: React.RefObject<HTMLDivElement>
-}
+type PhotoProps   = BaseProps & { type: "photo"; src: string; caption?: string };
+type TextProps    = BaseProps & { type: "text";  content: string; fontSize: number; color: string };
+type StickerProps = BaseProps & { type: "sticker"; src: string };
+type Props        = PhotoProps | TextProps | StickerProps;
 
-export default function DraggableElement({
-  id,
-  type,
-  src,
-  content,
-  x,
-  y,
-  width,
-  height,
-  caption,
-  onUpdate,
-  onDelete,
-  containerRef,
-}: DraggableElementProps) {
-  const [isDragging, setIsDragging] = useState(false)
-  const [isResizing, setIsResizing] = useState(false)
-  const [isSelected, setIsSelected] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const [elementStart, setElementStart] = useState({ x: 0, y: 0 })
-  const [isEditingCaption, setIsEditingCaption] = useState(false)
-  const [editedCaption, setEditedCaption] = useState(caption || "")
+export default function DraggableElement(props: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
 
-  const elementRef = useRef<HTMLDivElement>(null)
+  // ← ここが “1-B で足す state”
+  const [mode, setMode] = useState<"idle" | "drag" | "resize">("idle");
+  const [corner, setCorner] = useState<"se" | "sw" | "ne" | "nw" | null>(null);
+  const startRef = useRef({
+    x: 0, y: 0,             // pointer start
+    w: 0, h: 0,             // size start
+    pxX: 0, pxY: 0,         // center (px) start
+    boxW: 0, boxH: 0,       // container size
+  });
+  const showUI = mode !== "idle"; 
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (elementRef.current && !elementRef.current.contains(event.target as Node)) {
-        setIsSelected(false)
-        setIsEditingCaption(false)
-      }
+  // --- Drag start (本体をつまんで移動) ---
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (mode === "resize") return; // リサイズ中はドラッグ開始しない
+    e.preventDefault();
+
+    const box = props.containerRef.current?.getBoundingClientRect();
+    if (!box) return;
+
+    const boxW = box.width, boxH = box.height;
+
+    startRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      w: props.width,
+      h: props.height,
+      pxX: (props.x / 100) * boxW,
+      pxY: (props.y / 100) * boxH,
+      boxW, boxH,
+    };
+
+    setMode("drag");
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+
+    const move = (ev: PointerEvent) => {
+      const { pxX, pxY, boxW, boxH } = startRef.current;
+      let nx = pxX + (ev.clientX - startRef.current.x);
+      let ny = pxY + (ev.clientY - startRef.current.y);
+
+      // はみ出さないように中心基準でクリップ
+      const halfW = props.width / 2;
+      const halfH = props.height / 2;
+      nx = Math.max(halfW, Math.min(boxW - halfW, nx));
+      ny = Math.max(halfH, Math.min(boxH - halfH, ny));
+
+      props.onUpdate(props.id, { x: (nx / boxW) * 100, y: (ny / boxH) * 100 });
+    };
+
+    const up = () => {
+      setMode("idle");
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
+  // --- Resize start (四隅のハンドルでサイズ変更) ---
+  const onResizeStart = (e: React.PointerEvent, c: "se" | "sw" | "ne" | "nw") => {
+    e.stopPropagation(); // 親のドラッグ開始を止める
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    setMode("resize");
+    setCorner(c);
+    startRef.current = {
+      ...startRef.current,
+      x: e.clientX,
+      y: e.clientY,
+      w: props.width,
+      h: props.height,
+    };
+  };
+
+  // リサイズ進行中の追従
+  const onWrapperPointerMove = (e: React.PointerEvent) => {
+    if (mode !== "resize" || !corner) return;
+    const dx = e.clientX - startRef.current.x;
+    const dy = e.clientY - startRef.current.y;
+
+    let w = startRef.current.w + (corner.includes("e") ? dx : -dx);
+    let h = startRef.current.h + (corner.includes("s") ? dy : -dy);
+    w = Math.max(24, w);
+    h = Math.max(24, h);
+
+    props.onUpdate(props.id, { width: w, height: h });
+  };
+
+  const onWrapperPointerUp = (e: React.PointerEvent) => {
+    if (mode === "resize") {
+      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      setMode("idle");
+      setCorner(null);
     }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    document.addEventListener("touchstart", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-      document.removeEventListener("touchstart", handleClickOutside)
-    }
-  }, [])
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isEditingCaption) return
-
-    e.preventDefault()
-    setIsSelected(true)
-    setIsDragging(true)
-
-    const clientX = e.clientX || (e as any).touches?.[0]?.clientX || 0
-    const clientY = e.clientY || (e as any).touches?.[0]?.clientY || 0
-
-    setDragStart({ x: clientX, y: clientY })
-    setElementStart({ x, y })
-  }
-
-  const handlePointerMove = (e: PointerEvent) => {
-    if (!isDragging || !containerRef.current) return
-
-    const clientX = e.clientX || (e as any).touches?.[0]?.clientX || 0
-    const clientY = e.clientY || (e as any).touches?.[0]?.clientY || 0
-
-    const deltaX = clientX - dragStart.x
-    const deltaY = clientY - dragStart.y
-
-    const containerRect = containerRef.current.getBoundingClientRect()
-    const newX = Math.max(0, Math.min(100, elementStart.x + (deltaX / containerRect.width) * 100))
-    const newY = Math.max(0, Math.min(100, elementStart.y + (deltaY / containerRect.height) * 100))
-
-    onUpdate(id, { x: newX, y: newY })
-  }
-
-  const handlePointerUp = () => {
-    setIsDragging(false)
-  }
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener("pointermove", handlePointerMove)
-      document.addEventListener("pointerup", handlePointerUp)
-      return () => {
-        document.removeEventListener("pointermove", handlePointerMove)
-        document.removeEventListener("pointerup", handlePointerUp)
-      }
-    }
-  }, [isDragging, dragStart, elementStart])
-
-  const handleResize = (direction: string, e: React.PointerEvent) => {
-    e.stopPropagation()
-    setIsResizing(true)
-
-    const startSize = { width, height }
-    const startPos = {
-      x: e.clientX || (e as any).touches?.[0]?.clientX || 0,
-      y: e.clientY || (e as any).touches?.[0]?.clientY || 0,
-    }
-
-    const handleResizeMove = (e: PointerEvent) => {
-      const currentX = e.clientX || (e as any).touches?.[0]?.clientX || 0
-      const currentY = e.clientY || (e as any).touches?.[0]?.clientY || 0
-
-      const deltaX = currentX - startPos.x
-      const deltaY = currentY - startPos.y
-
-      let newWidth = startSize.width
-      let newHeight = startSize.height
-
-      if (direction.includes("right")) newWidth = Math.max(50, startSize.width + deltaX)
-      if (direction.includes("left")) newWidth = Math.max(50, startSize.width - deltaX)
-      if (direction.includes("bottom")) newHeight = Math.max(50, startSize.height + deltaY)
-      if (direction.includes("top")) newHeight = Math.max(50, startSize.height - deltaY)
-
-      onUpdate(id, { width: newWidth, height: newHeight })
-    }
-
-    const handleResizeEnd = () => {
-      setIsResizing(false)
-      document.removeEventListener("pointermove", handleResizeMove)
-      document.removeEventListener("pointerup", handleResizeEnd)
-    }
-
-    document.addEventListener("pointermove", handleResizeMove)
-    document.addEventListener("pointerup", handleResizeEnd)
-  }
-
-  const saveCaption = () => {
-    onUpdate(id, { caption: editedCaption })
-    setIsEditingCaption(false)
-  }
+  };
 
   return (
     <div
-      ref={elementRef}
-      className={`absolute select-none touch-none ${
-        isSelected ? "z-10" : "z-0"
-      } ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+      ref={wrapRef}
+      className="absolute group"
       style={{
-        left: `${x}%`,
-        top: `${y}%`,
-        width: `${width}px`,
-        height: `${height}px`,
-        transform: "translate(-50%, -50%)",
+        left: `${props.x}%`,
+        top: `${props.y}%`,
+        transform: "translate(-50%,-50%)",
+        width: `${props.width}px`,
+        height: `${props.height}px`,
       }}
-      onPointerDown={handlePointerDown}
+      onPointerDown={onDragStart}
+      onPointerMove={onWrapperPointerMove}
+      onPointerUp={onWrapperPointerUp}
     >
-      {/* Main Content */}
-      <div className={`w-full h-full relative ${isSelected ? "ring-2 ring-primary" : ""} rounded`}>
-        {type === "photo" && src && (
-          <img
-            src={src || "/placeholder.svg"}
-            alt="Album photo"
-            className="w-full h-full object-cover rounded"
-            draggable={false}
-          />
-        )}
-
-        {type === "sticker" && content && (
-          <div className="w-full h-full flex items-center justify-center text-4xl">{content}</div>
-        )}
-
-        {/* Selection Controls */}
-        {isSelected && (
-          <>
-            {/* Resize Handles */}
-            <div
-              className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nw-resize"
-              onPointerDown={(e) => handleResize("top-right", e)}
-            />
-            <div
-              className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-se-resize"
-              onPointerDown={(e) => handleResize("bottom-right", e)}
-            />
-            <div
-              className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-sw-resize"
-              onPointerDown={(e) => handleResize("bottom-left", e)}
-            />
-            <div
-              className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-ne-resize"
-              onPointerDown={(e) => handleResize("top-left", e)}
-            />
-
-            {/* Action Buttons */}
-            <div className="absolute -top-8 left-0 flex gap-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(id)
-                }}
-                className="w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs hover:bg-destructive/90"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Caption */}
-      {type === "photo" && (
-        <div className="absolute -bottom-8 left-0 right-0">
-          {isEditingCaption ? (
-            <input
-              type="text"
-              value={editedCaption}
-              onChange={(e) => setEditedCaption(e.target.value)}
-              onBlur={saveCaption}
-              onKeyDown={(e) => e.key === "Enter" && saveCaption()}
-              className="w-full text-xs text-center bg-background/90 border border-border rounded px-1 py-0.5"
-              maxLength={20}
-              placeholder="Add caption..."
-              autoFocus
-            />
-          ) : (
-            <div
-              onClick={(e) => {
-                e.stopPropagation()
-                setIsEditingCaption(true)
-                setEditedCaption(caption || "")
-              }}
-              className="text-xs text-center text-foreground bg-background/80 rounded px-1 py-0.5 cursor-text hover:bg-background/90"
-            >
-              {caption || "Add caption..."}
-            </div>
-          )}
+      {/* 中身の描画：写真は背景なし、スタンプは絵文字もOK */}
+      {props.type === "sticker" ? (
+        isImageLike((props as any).src) ? (
+          <img src={(props as any).src} alt="" className="w-full h-full object-contain pointer-events-none" />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center pointer-events-none select-none"
+            style={{ fontSize: `${Math.min(props.width, props.height)}px`, lineHeight: 1 }}
+          >
+            {(props as any).src}
+          </div>
+        )
+      ) : props.type === "photo" ? (
+        <img src={(props as any).src} alt="" className="w-full h-full object-contain pointer-events-none" />
+      ) : (
+        <div
+          className="w-full h-full flex items-center justify-center text-center bg-transparent cursor-move"
+          style={{
+            fontSize: (props as any).fontSize,
+            color: (props as any).color,
+            lineHeight: 1.2,
+            whiteSpace: "pre-wrap",
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            const current = (props as any).content ?? "";
+            const next = prompt("テキストを編集", current);
+            if (next !== null) props.onUpdate(props.id, { content: next });
+          }}
+        >
+          {(props as any).content}
         </div>
       )}
+
+      {/* リサイズ用ハンドル（四隅） */}
+      <span
+        onPointerDown={(e) => onResizeStart(e, "se")}
+        className={`absolute -right-2 -bottom-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-se-resize
+              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+      />
+      <span
+        onPointerDown={(e) => onResizeStart(e, "sw")}
+        className={`absolute -left-2 -bottom-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-sw-resize
+              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+      />
+      <span
+        onPointerDown={(e) => onResizeStart(e, "ne")}
+        className={`absolute -right-2 -top-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-ne-resize
+              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+      />
+      <span
+        onPointerDown={(e) => onResizeStart(e, "nw")}
+        className={`absolute -left-2 -top-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-nw-resize
+              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+      />
+
+      {/* 削除ボタン */}
+      <button
+        className={`absolute -right-2 -top-2 w-5 h-5 rounded-full bg-white border text-red-600 leading-none
+              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+        onMouseDown={(e)  => { e.stopPropagation(); e.preventDefault(); }}
+        onClick={(e)     => { e.stopPropagation(); props.onDelete(props.id); }}
+        title="削除"
+      >
+        ×
+      </button>
+
     </div>
-  )
+  );
 }
