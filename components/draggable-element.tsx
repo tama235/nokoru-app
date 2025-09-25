@@ -7,19 +7,24 @@ const isImageLike = (s?: string) =>
 
 type BaseProps = {
   id: string;
-  x: number;     // 0-100 (%)
-  y: number;     // 0-100 (%)
+  x: number; // 0-100 (%)
+  y: number; // 0-100 (%)
   width: number; // px
-  height: number;// px
+  height: number; // px
   containerRef: React.RefObject<HTMLDivElement>;
   onUpdate: (id: string, updates: any) => void;
   onDelete: (id: string) => void;
 };
 
-type PhotoProps   = BaseProps & { type: "photo"; src: string; caption?: string };
-type TextProps    = BaseProps & { type: "text";  content: string; fontSize: number; color: string };
+type PhotoProps = BaseProps & { type: "photo"; src: string; caption?: string };
+type TextProps = BaseProps & {
+  type: "text";
+  content: string;
+  fontSize: number;
+  color: string;
+};
 type StickerProps = BaseProps & { type: "sticker"; src: string };
-type Props        = PhotoProps | TextProps | StickerProps;
+type Props = PhotoProps | TextProps | StickerProps;
 
 export default function DraggableElement(props: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -28,12 +33,16 @@ export default function DraggableElement(props: Props) {
   const [mode, setMode] = useState<"idle" | "drag" | "resize">("idle");
   const [corner, setCorner] = useState<"se" | "sw" | "ne" | "nw" | null>(null);
   const startRef = useRef({
-    x: 0, y: 0,             // pointer start
-    w: 0, h: 0,             // size start
-    pxX: 0, pxY: 0,         // center (px) start
-    boxW: 0, boxH: 0,       // container size
+    x: 0,
+    y: 0, // pointer start
+    w: 0,
+    h: 0, // size start
+    pxX: 0,
+    pxY: 0, // center (px) start
+    boxW: 0,
+    boxH: 0, // container size
   });
-  const showUI = mode !== "idle"; 
+  const showUI = mode !== "idle";
 
   // --- Drag start (本体をつまんで移動) ---
   const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -43,7 +52,8 @@ export default function DraggableElement(props: Props) {
     const box = props.containerRef.current?.getBoundingClientRect();
     if (!box) return;
 
-    const boxW = box.width, boxH = box.height;
+    const boxW = box.width,
+      boxH = box.height;
 
     startRef.current = {
       x: e.clientX,
@@ -52,7 +62,8 @@ export default function DraggableElement(props: Props) {
       h: props.height,
       pxX: (props.x / 100) * boxW,
       pxY: (props.y / 100) * boxH,
-      boxW, boxH,
+      boxW,
+      boxH,
     };
 
     setMode("drag");
@@ -85,7 +96,10 @@ export default function DraggableElement(props: Props) {
   };
 
   // --- Resize start (四隅のハンドルでサイズ変更) ---
-  const onResizeStart = (e: React.PointerEvent, c: "se" | "sw" | "ne" | "nw") => {
+  const onResizeStart = (
+    e: React.PointerEvent,
+    c: "se" | "sw" | "ne" | "nw"
+  ) => {
     e.stopPropagation(); // 親のドラッグ開始を止める
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     setMode("resize");
@@ -139,17 +153,28 @@ export default function DraggableElement(props: Props) {
       {/* 中身の描画：写真は背景なし、スタンプは絵文字もOK */}
       {props.type === "sticker" ? (
         isImageLike((props as any).src) ? (
-          <img src={(props as any).src} alt="" className="w-full h-full object-contain pointer-events-none" />
+          <img
+            src={(props as any).src}
+            alt=""
+            className="w-full h-full object-contain pointer-events-none"
+          />
         ) : (
           <div
             className="w-full h-full flex items-center justify-center pointer-events-none select-none"
-            style={{ fontSize: `${Math.min(props.width, props.height)}px`, lineHeight: 1 }}
+            style={{
+              fontSize: `${Math.min(props.width, props.height)}px`,
+              lineHeight: 1,
+            }}
           >
             {(props as any).src}
           </div>
         )
       ) : props.type === "photo" ? (
-        <img src={(props as any).src} alt="" className="w-full h-full object-contain pointer-events-none" />
+        <img
+          src={(props as any).src}
+          alt=""
+          className="w-full h-full object-contain pointer-events-none"
+        />
       ) : (
         <div
           className="w-full h-full flex items-center justify-center text-center bg-transparent cursor-move"
@@ -174,36 +199,54 @@ export default function DraggableElement(props: Props) {
       <span
         onPointerDown={(e) => onResizeStart(e, "se")}
         className={`absolute -right-2 -bottom-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-se-resize
-              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              transition-opacity ${
+                showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
       />
       <span
         onPointerDown={(e) => onResizeStart(e, "sw")}
         className={`absolute -left-2 -bottom-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-sw-resize
-              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              transition-opacity ${
+                showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
       />
       <span
         onPointerDown={(e) => onResizeStart(e, "ne")}
         className={`absolute -right-2 -top-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-ne-resize
-              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              transition-opacity ${
+                showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
       />
       <span
         onPointerDown={(e) => onResizeStart(e, "nw")}
         className={`absolute -left-2 -top-2 w-3 h-3 bg-white border rounded-sm shadow-sm cursor-nw-resize
-              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              transition-opacity ${
+                showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
       />
 
       {/* 削除ボタン */}
       <button
         className={`absolute -right-2 -top-2 w-5 h-5 rounded-full bg-white border text-red-600 leading-none
-              transition-opacity ${showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-        onMouseDown={(e)  => { e.stopPropagation(); e.preventDefault(); }}
-        onClick={(e)     => { e.stopPropagation(); props.onDelete(props.id); }}
+              transition-opacity ${
+                showUI ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onDelete(props.id);
+        }}
         title="削除"
       >
         ×
       </button>
-
     </div>
   );
 }

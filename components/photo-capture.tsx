@@ -1,91 +1,94 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Camera, Upload, X, Check } from "lucide-react"
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Camera, Upload, X, Check } from "lucide-react";
 
 interface PhotoCaptureProps {
-  onPhotoSelected: (photoSrc: string) => void
-  onClose: () => void
+  onPhotoSelected: (photoSrc: string) => void;
+  onClose: () => void;
 }
 
-export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureProps) {
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
-  const [isCapturing, setIsCapturing] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+export default function PhotoCapture({
+  onPhotoSelected,
+  onClose,
+}: PhotoCaptureProps) {
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
     try {
-      setIsCapturing(true)
+      setIsCapturing(true);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" }, // Use back camera on mobile
-      })
-      streamRef.current = stream
+      });
+      streamRef.current = stream;
       if (videoRef.current) {
-        videoRef.current.srcObject = stream
+        videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error("Error accessing camera:", error)
-      setIsCapturing(false)
-      alert("Unable to access camera. Please check permissions.")
+      console.error("Error accessing camera:", error);
+      setIsCapturing(false);
+      alert("Unable to access camera. Please check permissions.");
     }
-  }
+  };
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
-    setIsCapturing(false)
-  }
+    setIsCapturing(false);
+  };
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current
-      const canvas = canvasRef.current
-      const context = canvas.getContext("2d")
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d");
 
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
       if (context) {
-        context.drawImage(video, 0, 0)
-        const photoDataUrl = canvas.toDataURL("image/jpeg", 0.8)
-        setCapturedPhoto(photoDataUrl)
-        stopCamera()
+        context.drawImage(video, 0, 0);
+        const photoDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setCapturedPhoto(photoDataUrl);
+        stopCamera();
       }
     }
-  }
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const result = e.target?.result as string
-        setCapturedPhoto(result)
-      }
-      reader.readAsDataURL(file)
+        const result = e.target?.result as string;
+        setCapturedPhoto(result);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const confirmPhoto = () => {
     if (capturedPhoto) {
-      onPhotoSelected(capturedPhoto)
-      onClose()
+      onPhotoSelected(capturedPhoto);
+      onClose();
     }
-  }
+  };
 
   const retakePhoto = () => {
-    setCapturedPhoto(null)
-    startCamera()
-  }
+    setCapturedPhoto(null);
+    startCamera();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
@@ -97,8 +100,8 @@ export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureP
               variant="ghost"
               size="sm"
               onClick={() => {
-                stopCamera()
-                onClose()
+                stopCamera();
+                onClose();
               }}
               className="text-foreground hover:bg-muted"
             >
@@ -111,7 +114,9 @@ export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureP
               <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
                 <div className="text-center">
                   <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Choose how to add your photo</p>
+                  <p className="text-sm text-muted-foreground">
+                    Choose how to add your photo
+                  </p>
                 </div>
               </div>
 
@@ -134,28 +139,36 @@ export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureP
                 </Button>
               </div>
 
-        
               <input
-                ref={fileRef}                     // 既にあればそのまま
+                ref={fileRef} // 既にあればそのまま
                 type="file"
                 accept="image/*"
-                capture="environment"            // ← これを追加（背面カメラ優先）
-                onChange={handleFiles}           // あなたの既存処理でOK
-                className="sr-only"              // 画面に出さない場合
+                capture="environment" // ← これを追加（背面カメラ優先）
+                onChange={handleFiles} // あなたの既存処理でOK
+                className="sr-only" // 画面に出さない場合
               />
-
             </div>
           )}
 
           {isCapturing && (
             <div className="space-y-4">
               <div className="aspect-square bg-black rounded-lg overflow-hidden relative">
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
                 <canvas ref={canvasRef} className="hidden" />
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={stopCamera} variant="outline" className="flex-1 bg-transparent">
+                <Button
+                  onClick={stopCamera}
+                  variant="outline"
+                  className="flex-1 bg-transparent"
+                >
                   Cancel
                 </Button>
                 <Button
@@ -180,7 +193,11 @@ export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureP
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={retakePhoto} variant="outline" className="flex-1 bg-transparent">
+                <Button
+                  onClick={retakePhoto}
+                  variant="outline"
+                  className="flex-1 bg-transparent"
+                >
                   Retake
                 </Button>
                 <Button
@@ -196,5 +213,5 @@ export default function PhotoCapture({ onPhotoSelected, onClose }: PhotoCaptureP
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

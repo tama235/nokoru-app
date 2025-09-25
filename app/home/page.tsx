@@ -10,9 +10,17 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Menu as MenuIcon, Camera, ImageIcon, User, FolderOpen, HelpCircle, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Menu as MenuIcon,
+  Camera,
+  ImageIcon,
+  User,
+  FolderOpen,
+  HelpCircle,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
-
 
 // ---- Types -----------------------------------------------------------------
 export type Album = {
@@ -31,16 +39,33 @@ export type Template = {
 
 // ---- Mock Data -------------------------------------------------------------
 const mockHighlight: Album[] = [
-  { id: "h1", name: "Family", coverImage: "/img/home/family.png", pageCount: 24, createdAt: new Date() },
-  { id: "h2", name: "Little", coverImage: "/img/home/little.png", pageCount: 18, createdAt: new Date() },
-  { id: "h3", name: "青",     coverImage: "/img/home/midori.png", pageCount: 12, createdAt: new Date() },
+  {
+    id: "h1",
+    name: "Family",
+    coverImage: "/img/home/family.png",
+    pageCount: 24,
+    createdAt: new Date(),
+  },
+  {
+    id: "h2",
+    name: "Little",
+    coverImage: "/img/home/little.png",
+    pageCount: 18,
+    createdAt: new Date(),
+  },
+  {
+    id: "h3",
+    name: "青",
+    coverImage: "/img/home/midori.png",
+    pageCount: 12,
+    createdAt: new Date(),
+  },
 ];
-
 
 const mockTemplates: Template[] = [
   { id: "t1", title: "Triangle", cover: "/img/home/sannkaku.png" },
-  { id: "t2", title: "Memory",   cover: "/img/home/omoide.png" },
-  { id: "t3", title: "Black",    cover: "/img/home/black.png" },
+  { id: "t2", title: "Memory", cover: "/img/home/omoide.png" },
+  { id: "t3", title: "Black", cover: "/img/home/black.png" },
 ];
 
 const mockCreateNew: Template[] = [
@@ -80,7 +105,15 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function Shelf<T>({ items, renderItem, testId }: { items: T[]; renderItem: (item: T) => React.ReactNode; testId?: string }) {
+function Shelf<T>({
+  items,
+  renderItem,
+  testId,
+}: {
+  items: T[];
+  renderItem: (item: T) => React.ReactNode;
+  testId?: string;
+}) {
   return (
     <div data-testid={testId} className="px-4 overflow-x-auto">
       <div className="flex gap-3 min-w-max">
@@ -92,15 +125,29 @@ function Shelf<T>({ items, renderItem, testId }: { items: T[]; renderItem: (item
   );
 }
 
-function AlbumCard({ album, onClick, onDelete }: { album: Album; onClick?: () => void; onDelete?: () => void }) {
+function AlbumCard({
+  album,
+  onClick,
+  onDelete,
+}: {
+  album: Album;
+  onClick?: () => void;
+  onDelete?: () => void;
+}) {
   return (
-    <Card className="relative w-[140px] rounded-xl overflow-hidden shadow-sm" onClick={onClick}>
+    <Card
+      className="relative w-[140px] rounded-xl overflow-hidden shadow-sm"
+      onClick={onClick}
+    >
       {onDelete && (
         <button
           aria-label="削除"
           title="削除"
           className="absolute right-2 top-2 z-10 rounded-full border bg-white/90 hover:bg-white p-1"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
         >
           <Trash2 className="w-4 h-4 text-red-600" />
         </button>
@@ -109,7 +156,12 @@ function AlbumCard({ album, onClick, onDelete }: { album: Album; onClick?: () =>
         <div className="relative w-full h-[160px] bg-zinc-200">
           {/* next/image keeps aspect ratio & lazy loads */}
           {album.coverImage && (
-            <Image src={album.coverImage} alt={album.name} fill className="object-cover" />
+            <Image
+              src={album.coverImage}
+              alt={album.name}
+              fill
+              className="object-cover"
+            />
           )}
         </div>
         <div className="px-3 py-2">
@@ -122,10 +174,17 @@ function AlbumCard({ album, onClick, onDelete }: { album: Album; onClick?: () =>
 
 function TemplateCard({ tpl, onUse }: { tpl: Template; onUse?: () => void }) {
   return (
-    <Card className="w-[140px] rounded-xl overflow-hidden shadow-sm cursor-pointer" onClick={onUse}>
+    <Card
+      className="w-[140px] rounded-xl overflow-hidden shadow-sm cursor-pointer"
+      onClick={onUse}
+    >
       <CardContent className="p-0">
         <div className="relative w-full h-[160px] bg-zinc-200">
-          <img src={tpl.cover} alt={tpl.title} className="w-full h-full object-cover" />
+          <img
+            src={tpl.cover}
+            alt={tpl.title}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div className="px-3 py-2">
           <p className="text-sm font-medium line-clamp-1">{tpl.title}</p>
@@ -135,46 +194,67 @@ function TemplateCard({ tpl, onUse }: { tpl: Template; onUse?: () => void }) {
   );
 }
 
-function Header({ onSelectMenu }: { onSelectMenu: (k: "account" | "albums" | "faq") => void }) {
+function Header({
+  onSelectMenu,
+}: {
+  onSelectMenu: (k: "account" | "albums" | "faq") => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b">
       <div className="h-14 px-4 flex items-center justify-between relative">
         <Link href="/home" aria-label="ノコル" className="flex items-center">
-        <Image
-          src="/img/home/nokoru-logo.png"   // ← 置いたパスに合わせて
-          alt="ノコル"
-          width={80}
-          height={20}
-          priority
-        />
+          <Image
+            src="/img/home/nokoru-logo.png" // ← 置いたパスに合わせて
+            alt="ノコル"
+            width={80}
+            height={20}
+            priority
+          />
         </Link>
 
-
-        <Button variant="ghost" size="icon" aria-label="menu" onClick={() => setOpen(v => !v)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="menu"
+          onClick={() => setOpen((v) => !v)}
+        >
           <MenuIcon className="h-5 w-5" />
         </Button>
 
         {open && (
           <>
             {/* 背景クリックで閉じる */}
-            <button className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
+            <button
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+              aria-hidden
+            />
             <div className="absolute right-0 top-12 z-50 w-52 rounded-xl border bg-white shadow-lg">
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 text-left"
-                onClick={() => { onSelectMenu("account"); setOpen(false); }}
+                onClick={() => {
+                  onSelectMenu("account");
+                  setOpen(false);
+                }}
               >
                 <User className="h-4 w-4" /> アカウント
               </button>
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 text-left"
-                onClick={() => { onSelectMenu("albums"); setOpen(false); }}
+                onClick={() => {
+                  onSelectMenu("albums");
+                  setOpen(false);
+                }}
               >
                 <FolderOpen className="h-4 w-4" /> アルバム一覧
               </button>
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 text-left"
-                onClick={() => { onSelectMenu("faq"); setOpen(false); }}
+                onClick={() => {
+                  onSelectMenu("faq");
+                  setOpen(false);
+                }}
               >
                 <HelpCircle className="h-4 w-4" /> よくある質問
               </button>
@@ -186,18 +266,33 @@ function Header({ onSelectMenu }: { onSelectMenu: (k: "account" | "albums" | "fa
   );
 }
 
-
-function Fab({ onCamera, onGallery, onNew }: { onCamera: () => void; onGallery: () => void; onNew: () => void }) {
+function Fab({
+  onCamera,
+  onGallery,
+  onNew,
+}: {
+  onCamera: () => void;
+  onGallery: () => void;
+  onNew: () => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="fixed right-4 bottom-6 flex flex-col items-end gap-3 select-none">
       {open && (
         <>
-          <Button variant="secondary" className="rounded-full w-11 h-11 p-0" onClick={onGallery}>
+          <Button
+            variant="secondary"
+            className="rounded-full w-11 h-11 p-0"
+            onClick={onGallery}
+          >
             <ImageIcon className="w-5 h-5" />
           </Button>
-          <Button variant="secondary" className="rounded-full w-11 h-11 p-0" onClick={onCamera}>
+          <Button
+            variant="secondary"
+            className="rounded-full w-11 h-11 p-0"
+            onClick={onCamera}
+          >
             <Camera className="w-5 h-5" />
           </Button>
         </>
@@ -223,14 +318,23 @@ export default function HomePage() {
   useEffect(() => {
     const saved = loadAlbumsFromLS();
     const list = Object.values(saved) as Album[];
-    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    list.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
     setAlbums(list);
   }, []);
 
   const createNewAlbum = (name?: string, coverImage?: string) => {
     const saved = loadAlbumsFromLS();
     const id = Date.now().toString();
-    const album: Album = { id, name: name?.trim() || "New Album", pageCount: 1, createdAt: new Date(), coverImage };
+    const album: Album = {
+      id,
+      name: name?.trim() || "New Album",
+      pageCount: 1,
+      createdAt: new Date(),
+      coverImage,
+    };
     saved[id] = album;
     saveAlbumsToLS(saved);
     setAlbums((prev) => [album, ...prev]);
@@ -269,13 +373,12 @@ export default function HomePage() {
   };
 
   const deleteAlbum = (id: string) => {
-  if (!confirm("このアルバムを削除しますか？（元に戻せません）")) return;
+    if (!confirm("このアルバムを削除しますか？（元に戻せません）")) return;
     const saved = loadAlbumsFromLS();
-    delete saved[id];                 // 1) LS から消す
-    saveAlbumsToLS(saved);            // 2) 保存
-    setAlbums(prev => prev.filter(a => a.id !== id));  // 3) 画面を更新
+    delete saved[id]; // 1) LS から消す
+    saveAlbumsToLS(saved); // 2) 保存
+    setAlbums((prev) => prev.filter((a) => a.id !== id)); // 3) 画面を更新
   };
-
 
   return (
     <main className="min-h-dvh bg-white">
@@ -293,16 +396,16 @@ export default function HomePage() {
       {/* Highlight */}
       <SectionHeader title="Highlight" />
       <Shelf
-         items={albums}
-         testId="highlight"
-         renderItem={(alb) => (
-      <AlbumCard
-         album={alb as Album}
-        onClick={() => router.push(`/album/${(alb as Album).id}`)}
-          onDelete={() => deleteAlbum((alb as Album).id)}  // ★ 追加
-         />
-       )}
-       />
+        items={albums}
+        testId="highlight"
+        renderItem={(alb) => (
+          <AlbumCard
+            album={alb as Album}
+            onClick={() => router.push(`/album/${(alb as Album).id}`)}
+            onDelete={() => deleteAlbum((alb as Album).id)} // ★ 追加
+          />
+        )}
+      />
 
       {/* Design templates */}
       <SectionHeader title="Design templates" />
@@ -310,7 +413,12 @@ export default function HomePage() {
         items={mockTemplates}
         testId="templates"
         renderItem={(tpl) => (
-          <TemplateCard tpl={tpl as Template} onUse={() => createNewAlbum((tpl as Template).title, (tpl as Template).cover)} />
+          <TemplateCard
+            tpl={tpl as Template}
+            onUse={() =>
+              createNewAlbum((tpl as Template).title, (tpl as Template).cover)
+            }
+          />
         )}
       />
 
